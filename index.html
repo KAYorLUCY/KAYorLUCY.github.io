@@ -94,121 +94,118 @@
     </div>
 
     <!-- 引入腾讯云 SDK -->
-    <script src="//static.cloudbase.net/cloudbase-js-sdk/1.7.2/cloudbase.storage.js"></script>
-    <script>
-        // 确保 SDK 加载完成后初始化
-        document.addEventListener('DOMContentLoaded', () => {
-            // 初始化腾讯云
-            const app = cloudbase.init({
-                env: 'kay-testcloud1-8g4gb8fc3a5f2a53' // 替换为你的腾讯云环境ID
-            });
-            const db = app.database();
+   <script src="//static.cloudbase.net/cloudbase-js-sdk/1.7.2/cloudbase.storage.js"></script>
+<script>
+    const app = cloudbase.init({
+        env: 'kay-testcloud1-8g4gb8fc3a5f2a53' // 替换为你的腾讯云环境ID
+    });
+    const db = app.database();
 
-        let participants = [];
-        let remaining = [];
+    let participants = [];
+    let remaining = [];
 
-        // 初始化参与者名单
-        function initializeParticipants() {
-            const names = document.getElementById('participants').value.split('\n');
-            participants = names.map(n => n.trim()).filter(n => n);
-            remaining = [...participants];
+    // 初始化参与者名单
+    function initializeParticipants() {
+        const names = document.getElementById('participants').value.split('\n');
+        participants = names.map(n => n.trim()).filter(n => n);
+        remaining = [...participants];
 
-            // 清空数据库中的旧数据
-            db.collection('lotteryResults').where().remove().then(() => {
-                alert('初始化成功！共' + participants.length + '人参与');
-            }).catch((error) => {
-                console.error("清空数据失败：", error);
-                alert("初始化失败，请稍后再试！");
-            });
-        }
-
-        // 抽签逻辑
-        function drawLottery() {
-            const userName = document.getElementById('userName').value.trim();
-            if (!participants.includes(userName)) {
-                alert('未找到您的姓名，请联系管理员');
-                return;
-            }
-
-            let available = remaining.filter(n => n !== userName);
-            if (available.length === 0) {
-                alert('所有人员都已分配完毕！');
-                return;
-            }
-
-            const randomIndex = Math.floor(Math.random() * available.length);
-            const selected = available[randomIndex];
-
-            // 保存抽签结果到腾讯云数据库
-            db.collection('lotteryResults').add({
-                data: {
-                    giver: userName,
-                    receiver: selected
-                }
-            }).then(() => {
-                alert("抽签成功！您的礼物将送给：" + selected);
-                showResultAnimation(userName, selected);
-            }).catch((error) => {
-                console.error("保存失败：", error);
-                alert("保存结果时出错，请稍后再试！");
-            });
-        }
-
-        // 显示抽签结果动画
-        function showResultAnimation(user, target) {
-            const resultDiv = document.getElementById('result');
-            resultDiv.style.display = 'block';
-            resultDiv.innerHTML = `🎉 ${user} <br>您的新春礼物要送给：<br><span style="font-size:1.5em;color:#fff">${target}</span>`;
-            createFireworks();
-        }
-
-        // 创建烟花效果
-        function createFireworks() {
-            for (let i = 0; i < 20; i++) {
-                const firework = document.createElement('div');
-                firework.className = 'firework';
-                firework.style.left = Math.random() * 100 + 'vw';
-                firework.style.top = Math.random() * 100 + 'vh';
-                firework.style.fontSize = Math.random() * 20 + 10 + 'px';
-                firework.innerHTML = ['🎆', '🎇', '✨', '🎉'][Math.floor(Math.random() * 4)];
-                document.body.appendChild(firework);
-                setTimeout(() => firework.remove(), 1000);
-            }
-        }
-
-        // 查看所有抽签结果
-        function showAllResults() {
-            db.collection('lotteryResults').get().then((res) => {
-                let resultStr = "当前抽签结果：\n";
-                res.data.forEach(item => {
-                    resultStr += `${item.giver} → ${item.receiver}\n`;
-                });
-                alert(resultStr);
-            }).catch((error) => {
-                console.error("读取失败：", error);
-                alert("读取结果时出错！");
-            });
-        }
-
-        // 管理员登录
-        function toggleAdmin() {
-            const panel = document.getElementById('adminPanel');
-            const password = document.getElementById('adminPwd').value;
-           if (password === 'ssry2025') {
-        panel.style.display = 'block';
-
-        // 测试连接
-        db.collection('lotteryResults').get().then((res) => {
-            console.log("连接成功，数据库数据：", res.data);
-            alert("管理员登录成功，连接到腾讯云数据库！");
+        // 清空数据库中的旧数据
+        db.collection('lotteryResults').where().remove().then(() => {
+            alert('初始化成功！共' + participants.length + '人参与');
         }).catch((error) => {
-            console.error("连接失败：", error);
-            alert("管理员登录成功，但连接到腾讯云数据库失败！");
+            console.error("清空数据失败：", error);
+            alert("初始化失败，请稍后再试！");
         });
-    } else {
-        alert('管理员密码错误');
     }
-}
-    </script>
+
+    // 抽签逻辑
+    function drawLottery() {
+        const userName = document.getElementById('userName').value.trim();
+        if (!participants.includes(userName)) {
+            alert('未找到您的姓名，请联系管理员');
+            return;
+        }
+
+        let available = remaining.filter(n => n !== userName);
+        if (available.length === 0) {
+            alert('所有人员都已分配完毕！');
+            return;
+        }
+
+        const randomIndex = Math.floor(Math.random() * available.length);
+        const selected = available[randomIndex];
+
+        // 保存抽签结果到腾讯云数据库
+        db.collection('lotteryResults').add({
+            data: {
+                giver: userName,
+                receiver: selected
+            }
+        }).then(() => {
+            alert("抽签成功！您的礼物将送给：" + selected);
+            showResultAnimation(userName, selected);
+        }).catch((error) => {
+            console.error("保存失败：", error);
+            alert("保存结果时出错，请稍后再试！");
+        });
+    }
+
+    // 显示抽签结果动画
+    function showResultAnimation(user, target) {
+        const resultDiv = document.getElementById('result');
+        resultDiv.style.display = 'block';
+        resultDiv.innerHTML = `🎉 ${user} <br>您的新春礼物要送给：<br><span style="font-size:1.5em;color:#fff">${target}</span>`;
+        createFireworks();
+    }
+
+    // 创建烟花效果
+    function createFireworks() {
+        for (let i = 0; i < 20; i++) {
+            const firework = document.createElement('div');
+            firework.className = 'firework';
+            firework.style.left = Math.random() * 100 + 'vw';
+            firework.style.top = Math.random() * 100 + 'vh';
+            firework.style.fontSize = Math.random() * 20 + 10 + 'px';
+            firework.innerHTML = ['🎆', '🎇', '✨', '🎉'][Math.floor(Math.random() * 4)];
+            document.body.appendChild(firework);
+            setTimeout(() => firework.remove(), 1000);
+        }
+    }
+
+    // 查看所有抽签结果
+    function showAllResults() {
+        db.collection('lotteryResults').get().then((res) => {
+            let resultStr = "当前抽签结果：\n";
+            res.data.forEach(item => {
+                resultStr += `${item.giver} → ${item.receiver}\n`;
+            });
+            alert(resultStr);
+        }).catch((error) => {
+            console.error("读取失败：", error);
+            alert("读取结果时出错！");
+        });
+    }
+
+    // 管理员登录
+    function toggleAdmin() {
+        const panel = document.getElementById('adminPanel');
+        const password = document.getElementById('adminPwd').value;
+        if (password === 'ssry2025') {
+            panel.style.display = 'block';
+
+            // 测试连接
+            db.collection('lotteryResults').get().then((res) => {
+                console.log("连接成功，数据库数据：", res.data);
+                alert("管理员登录成功，连接到腾讯云数据库！");
+            }).catch((error) => {
+                console.error("连接失败：", error);
+                alert("管理员登录成功，但连接到腾讯云数据库失败！");
+            });
+        } else {
+            alert('管理员密码错误');
+        }
+    }
+</script>
 </body>
 </html>
