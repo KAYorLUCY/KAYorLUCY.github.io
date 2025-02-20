@@ -111,7 +111,14 @@
             const names = document.getElementById('participants').value.split('\n');
             participants = names.map(n => n.trim()).filter(n => n);
             remaining = [...participants];
-            alert('初始化成功！共' + participants.length + '人参与');
+
+            // 清空数据库中的旧数据
+            db.collection('lotteryResults').where().remove().then(() => {
+                alert('初始化成功！共' + participants.length + '人参与');
+            }).catch((error) => {
+                console.error("清空数据失败：", error);
+                alert("初始化失败，请稍后再试！");
+            });
         }
 
         // 抽签逻辑
@@ -186,12 +193,21 @@
         function toggleAdmin() {
             const panel = document.getElementById('adminPanel');
             const password = document.getElementById('adminPwd').value;
-            if (password === 'ssry2025') { // 替换为你的管理员密码
-                panel.style.display = 'block';
-            } else {
-                alert('管理员密码错误');
-            }
-        }
+           if (password === 'ssry2025') {
+        panel.style.display = 'block';
+
+        // 测试连接
+        db.collection('lotteryResults').get().then((res) => {
+            console.log("连接成功，数据库数据：", res.data);
+            alert("管理员登录成功，连接到腾讯云数据库！");
+        }).catch((error) => {
+            console.error("连接失败：", error);
+            alert("管理员登录成功，但连接到腾讯云数据库失败！");
+        });
+    } else {
+        alert('管理员密码错误');
+    }
+}
     </script>
 </body>
 </html>
