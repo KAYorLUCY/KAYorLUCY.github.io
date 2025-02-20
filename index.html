@@ -94,12 +94,13 @@
     </div>
 
     <!-- 引入腾讯云 SDK -->
-    <script type="module">
-    import Tcb from 'https://unpkg.com/@cloudbase/js-sdk';
-    const app = Tcb.init({
-        env: 'kay-testcloud1-8g4gb8fc3a5f2a53' // 替换为你的腾讯云环境ID
-    });
-    const db = app.database();
+    <script src="https://cdn.jsdelivr.net/npm/@cloudbase/js-sdk@1.0.0"></script>
+    <script>
+        // 初始化腾讯云
+        const app = Tcb.init({
+            env: 'kay-testcloud1-8g4gb8fc3a5f2a53' // 替换为你的腾讯云环境ID
+        });
+        const db = app.database();
 
         let participants = [];
         let remaining = [];
