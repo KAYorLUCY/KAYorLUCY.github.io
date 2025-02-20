@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>巳巳如意新春交换礼物抽签</title>
+    <style>
+        body {
+            background: #c62828;
+            font-family: '微软雅黑';
+            color: #fff3e0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: rgba(255, 235, 59, 0.1);
+            border-radius: 15px;
+            box-shadow: 0 0 20px #ffd54f;
+        }
+        h1 {
+            text-align: center;
+            color: #fff3e0;
+            text-shadow: 2px 2px 4px #c62828;
+            font-size: 2.5em;
+            margin: 20px 0;
+        }
+        .gold-border {
+            border: 3px solid #ffd700;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            background: rgba(198, 40, 40, 0.9);
+        }
+        input, button {
+            padding: 10px;
+            margin: 5px;
+            border: 2px solid #ffd700;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        button {
+            background: #c62828;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        button:hover {
+            background: #ffd700;
+            color: #c62828;
+        }
+        #result {
+            font-size: 24px;
+            color: #ffd700;
+            text-align: center;
+            padding: 20px;
+            display: none;
+        }
+        .firework {
+            position: fixed;
+            pointer-events: none;
+        }
+        .admin-panel {
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1> 🎁巳巳如意新春交换礼物抽签 🎁</h1>
+        
+        <div class="gold-border">
+            <!-- 管理员界面 -->
+            <div id="adminSection">
+                <h3>管理员设置</h3>
+                <input type="password" id="adminPwd" placeholder="输入管理员密码">
+                <button onclick="toggleAdmin()">管理员登录</button>
+                <div id="adminPanel" class="admin-panel" style="display:none;">
+                    <textarea id="participants" placeholder="请输入参与者全名，每行一个"></textarea>
+                    <button onclick="initializeParticipants()">初始化名单</button>
+                    <button onclick="showAllResults()">查看抽签结果</button>
+                </div>
+            </div>
+
+            <!-- 用户界面 -->
+            <div id="userSection">
+                <h3>抽签区</h3>
+                <input type="text" id="userName" placeholder="请输入您的全名">
+                <button onclick="drawLottery()">开始抽签</button>
+                <div id="result"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 引入腾讯云 SDK -->
+    <script src="https://unpkg.com/@cloudbase/js-sdk"></script>
+    <script>
+        // 初始化腾讯云
+        const Tcb = require('@cloudbase/js-sdk');
+        const app = Tcb.init({
+            env: '100040959249' // 替换为你的腾讯云环境ID
+        });
+        const db = app.database();
+
+        let participants = [];
+        let remaining = [];
+
+        // 初始化参与者名单
+        function initializeParticipants() {
+            const names = document.getElementById('participants').value.split('\n');
+            participants = names.map(n => n.trim()).filter(n => n);
+            remaining = [...participants];
+            alert('初始化成功！共' + participants.length + '人参与');
+        }
+
+        // 抽签逻辑
+        function drawLottery() {
+            const userName = document.getElementById('userName').value.trim();
+            if (!participants.includes(userName)) {
+                alert('未找到您的姓名，请联系管理员');
+                return;
+            }
+
+            let available = remaining.filter(n => n !== userName);
+            if (available.length === 0) {
+                alert('所有人员都已分配完毕！');
+                return;
+            }
+
+            const randomIndex = Math.floor(Math.random() * available.length);
+            const selected = available[randomIndex];
+
+            // 保存抽签结果到腾讯云数据库
+            db.collection('lotteryResults').add({
+                data: {
+                    giver: userName,
+                    receiver: selected
+                }
+            }).then(() => {
+                alert("抽签成功！您的礼物将送给：" + selected);
+                showResultAnimation(userName, selected);
+            }).catch((error) => {
+                console.error("保存失败：", error);
+                alert("保存结果时出错，请稍后再试！");
+            });
+        }
+
+        // 显示抽签结果动画
+        function showResultAnimation(user, target) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = `🎉 ${user} <br>您的新春礼物要送给：<br><span style="font-size:1.5em;color:#fff">${target}</span>`;
+            createFireworks();
+        }
+
+        // 创建烟花效果
+        function createFireworks() {
+            for (let i = 0; i < 20; i++) {
+                const firework = document.createElement('div');
+                firework.className = 'firework';
+                firework.style.left = Math.random() * 100 + 'vw';
+                firework.style.top = Math.random() * 100 + 'vh';
+                firework.style.fontSize = Math.random() * 20 + 10 + 'px';
+                firework.innerHTML = ['🎆', '🎇', '✨', '🎉'][Math.floor(Math.random() * 4)];
+                document.body.appendChild(firework);
+                setTimeout(() => firework.remove(), 1000);
+            }
+        }
+
+        // 查看所有抽签结果
+        function showAllResults() {
+            db.collection('lotteryResults').get().then((res) => {
+                let resultStr = "当前抽签结果：\n";
+                res.data.forEach(item => {
+                    resultStr += `${item.giver} → ${item.receiver}\n`;
+                });
+                alert(resultStr);
+            }).catch((error) => {
+                console.error("读取失败：", error);
+                alert("读取结果时出错！");
+            });
+        }
+
+        // 管理员登录
+        function toggleAdmin() {
+            const panel = document.getElementById('adminPanel');
+            const password = document.getElementById('adminPwd').value;
+            if (password === 'ssry2025') { // 替换为你的管理员密码
+                panel.style.display = 'block';
+            } else {
+                alert('管理员密码错误');
+            }
+        }
+    </script>
+</body>
+</html>
