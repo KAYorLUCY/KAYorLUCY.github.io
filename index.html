@@ -79,7 +79,7 @@
                 <div id="adminPanel" class="admin-panel" style="display:none;">
                     <textarea id="participants" placeholder="请输入参与者全名，每行一个"></textarea>
                     <button onclick="initializeParticipants()">初始化名单</button>
-                    <button onclick="showAllResults()">查看抽签结果</button>
+                    <button onclick="showResults()">查看抽签结果</button>
                 </div>
             </div>
 
@@ -93,37 +93,31 @@
         </div>
     </div>
 
-    <!-- 引入腾讯云 SDK -->
-    <script src="https://img1.tencent-cloud.cn/static/cloudbase-js-sdk/2.3.0/cloudbase.full.js"></script>
     <script>
-        const app = cloudbase.init({
-            env: 'kay-testcloud1-8g4gb8fc3a5f2a53' // 替换为你的腾讯云环境ID
-        });
-        const db = app.database();
-
         let participants = [];
         let remaining = [];
+        const results = new Map();
+        const adminPassword = 'ssry2025'; // 默认管理员密码
 
-        // 初始化参与者名单
         function initializeParticipants() {
             const names = document.getElementById('participants').value.split('\n');
             participants = names.map(n => n.trim()).filter(n => n);
             remaining = [...participants];
-
-            // 清空数据库中的旧数据
-            db.collection('lotteryResults').where().remove().then(() => {
-                alert('初始化成功！共' + participants.length + '人参与');
-            }).catch((error) => {
-                console.error("清空数据失败：", error);
-                alert("初始化失败，请稍后再试！");
-            });
+            results.clear();
+            localStorage.setItem('participants', JSON.stringify(participants));
+            localStorage.setItem('remaining', JSON.stringify(remaining));
+            localStorage.setItem('results', JSON.stringify([...results]));
+            alert('初始化成功！共' + participants.length + '人参与');
         }
 
-        // 抽签逻辑
         function drawLottery() {
             const userName = document.getElementById('userName').value.trim();
             if (!participants.includes(userName)) {
                 alert('未找到您的姓名，请联系管理员');
+                return;
+            }
+            if (results.has(userName)) {
+                alert('您已经抽过签了！');
                 return;
             }
 
@@ -135,31 +129,23 @@
 
             const randomIndex = Math.floor(Math.random() * available.length);
             const selected = available[randomIndex];
-
-            // 保存抽签结果到腾讯云数据库
-            db.collection('lotteryResults').add({
-                data: {
-                    giver: userName,
-                    receiver: selected
-                }
-            }).then(() => {
-                alert("抽签成功！您的礼物将送给：" + selected);
-                showResultAnimation(userName, selected);
-            }).catch((error) => {
-                console.error("保存失败：", error);
-                alert("保存结果时出错，请稍后再试！");
-            });
+            
+            results.set(userName, selected);
+            remaining = remaining.filter(n => n !== selected);
+            
+            localStorage.setItem('remaining', JSON.stringify(remaining));
+            localStorage.setItem('results', JSON.stringify([...results]));
+            
+            showResultAnimation(userName, selected);
         }
 
-        // 显示抽签结果动画
         function showResultAnimation(user, target) {
             const resultDiv = document.getElementById('result');
             resultDiv.style.display = 'block';
-            resultDiv.innerHTML = `🎉 ${user} <br>您的新春礼物要送给：<br><span style="font-size:1.5em;color:#fff">${target}</span>`;
+            resultDiv.innerHTML = `🎉 ${user} 同学<br>您的新春礼物要送给：<br><span style="font-size:1.5em;color:#fff">${target}</span>`;
             createFireworks();
         }
 
-        // 创建烟花效果
         function createFireworks() {
             for (let i = 0; i < 20; i++) {
                 const firework = document.createElement('div');
@@ -173,42 +159,35 @@
             }
         }
 
-        // 查看所有抽签结果
-        function showAllResults() {
-            db.collection('lotteryResults').get().then((res) => {
-                let resultStr = "当前抽签结果：\n";
-                res.data.forEach(item => {
-                    resultStr += `${item.giver} → ${item.receiver}\n`;
-                });
-                alert(resultStr);
-            }).catch((error) => {
-                console.error("读取失败：", error);
-                alert("读取结果时出错！");
-            });
-        }
-
-        // 管理员登录
         function toggleAdmin() {
             const panel = document.getElementById('adminPanel');
             const password = document.getElementById('adminPwd').value;
-            if (password === 'ssry2025') {
+           if (password === adminPassword) {
+                // 显示管理员面板
                 panel.style.display = 'block';
-
-                // 测试连接
-                db.collection('lotteryResults').get().then((res) => {
-                    console.log("连接成功，数据库数据：", res.data);
-                    alert("管理员登录成功，连接到腾讯云数据库！");
-                }).catch((error) => {
-                    console.error("连接失败：", error);
-                    alert("管理员登录成功，但连接到腾讯云数据库失败！");
-                });
             } else {
-                alert('管理员密码错误');
+                // 提示密码错误
+                alert('管理员密码错误！');
             }
         }
 
-        // 动态绑定管理员登录按钮
-        document.getElementById('adminLoginBtn').addEventListener('click', toggleAdmin);
+        function showResults() {
+            const storedResults = JSON.parse(localStorage.getItem('results') || '[]');
+            const resultsMap = new Map(storedResults);
+            let resultStr = '当前抽签结果：\n';
+            for (let [k, v] of resultsMap) {
+                resultStr += `${k} → ${v}\n`;
+            }
+            alert(resultStr);
+        }
+
+        // 初始化数据
+        window.onload = () => {
+            participants = JSON.parse(localStorage.getItem('participants')) || [];
+            remaining = JSON.parse(localStorage.getItem('remaining')) || [];
+            const storedResults = JSON.parse(localStorage.getItem('results') || '[]');
+            results = new Map(storedResults);
+        }
     </script>
 </body>
 </html>
